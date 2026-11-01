@@ -1,8 +1,8 @@
 # 项目方案：带本地 HMI 的 FOC 伺服节点
 
 > 硬件：GenBotter ST-12（STM32G474VET6 / LQFP100）
-> 代码基线：`E:\Demo\wushua_g474`（FOC + FreeRTOS 已就位，缺 HAL 外壳）
-> 原理图：`ST-12核心板原理图V1.0.pdf`（MD5 0938e12c…，与 gitee 仓库同版）
+> 代码基线：本仓库（FOC + FreeRTOS 已就位，缺 HAL 外壳）
+> 原理图：[`docs/ST-12核心板原理图V1.0.pdf`](ST-12核心板原理图V1.0.pdf)（MD5 0938e12c…，与 gitee 仓库同版）
 
 ---
 
