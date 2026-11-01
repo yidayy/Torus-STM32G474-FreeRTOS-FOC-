@@ -1,7 +1,7 @@
 # Torus · 环形伺服节点
 
 > STM32G474 + FreeRTOS 的无刷电机 FOC 伺服控制器
-> 代码位置：`E:\Demo\wushua_g474`
+> 代码位置：本仓库（`Core/` + `tools/` + `docs/`）
 
 ---
 

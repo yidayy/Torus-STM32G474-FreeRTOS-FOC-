@@ -9,7 +9,7 @@
 |---|---|
 | **目标板** | GenBotter ST-12 / STM32G474VET6（LQFP100） |
 | **原理图** | 本仓库 [`docs/ST-12核心板原理图V1.0.pdf`](docs/ST-12核心板原理图V1.0.pdf)（原始来源：[drg_st_12_g474vet6](https://gitee.com/gaoyanzeng/drg_st_12_g474vet6)） |
-| **代码目录** | `E:\Demo\wushua_g474` |
+| **仓库结构** | `Core/` 业务代码 ｜ `tools/sim/` PC 闭环仿真 ｜ `docs/` 设计与仿真报告 |
 | **控制环** | 电流 20 kHz / 速度 1 kHz / 位置 500 Hz |
 | **仿真状态** | ✅ 通过（超调 2.9%、建立 90 ms、反转超调 1.2%） |
 | **编译状态** | ⚠️ 未完成 —— 本地缺 G4 固件包，需 CubeMX 生成 HAL 外壳，见 [§11](#十一编译与部署) |
@@ -517,7 +517,7 @@ Middlewares/FreeRTOS/Source/portable/MemMang/heap_4.c
 
 6. ⚠️ **本仓库捆绑的 FreeRTOS port 是 `ARM_CM3`，必须替换为 `ARM_CM4F`**（G474 是 Cortex-M4F，CM3 port 不保存 FPU 寄存器，浮点任务会随机 HardFault）。另外编译参数必须带 `-mfpu=fpv4-sp-d16 -mfloat-abi=hard`。详见 [§11.4](#114-cmakelists)。
 
-### 与 F103 版（`E:\Demo\wushua`）的差异
+### 与 F103 版的差异（早期版本，未开源）
 
 | 项 | F103 版 | G474 版 |
 |---|---|---|
