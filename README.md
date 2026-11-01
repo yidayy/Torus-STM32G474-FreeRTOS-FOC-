@@ -12,7 +12,7 @@
 | **仓库结构** | `Core/` 业务代码 ｜ `tools/sim/` PC 闭环仿真 ｜ `docs/` 设计与仿真报告 |
 | **控制环** | 电流 20 kHz / 速度 1 kHz / 位置 500 Hz |
 | **仿真状态** | ✅ 通过（超调 2.9%、建立 90 ms、反转超调 1.2%） |
-| **编译状态** | ⚠️ 未完成 —— 本地缺 G4 固件包，需 CubeMX 生成 HAL 外壳，见 [§11](#十一编译与部署) |
+| **编译状态** | ✅ **通过**（arm-none-eabi-gcc 14.3.1，text 56.5 KB / bss 32.8 KB，见 [§11](#十一编译与部署)） |
 | **上板状态** | ⏸ 硬件未到 |
 
 **目录**：[定位](#一定位) · [快速开始](#二快速开始) · [硬件](#三硬件与引脚) · [架构](#四系统架构) · [算法](#五控制算法) · [仿真](#六仿真结果) · [整定](#七参数整定) · [上位机](#八上位机波形) · [命令](#九命令接口) · [部署](#十一编译与部署) · [限制](#十二已知限制) · [结构](#十三目录结构)
@@ -40,12 +40,12 @@
 
 ## 二、快速开始
 
+**不需要 CubeMX** —— HAL 驱动、CMSIS、启动文件、链接脚本都已在仓库里。
+
 ```bash
-# 1. CubeMX 打开 wushua_g474.ioc，Toolchain 选 CMake，GENERATE CODE
-# 2. 按 §11.2 替换 Core 目录（保留 4 个文件）
-# 3. 编译
-cube cmake --preset Debug --fresh
-cube cmake --build build/Debug
+# 需要 arm-none-eabi-gcc（>=12）与 cmake + ninja 在 PATH 中
+cmake --preset Debug
+cmake --build build/Debug          # 产物 build/Debug/torus.elf
 ```
 
 烧录后串口（**921600 8N1**）应看到：
@@ -65,8 +65,6 @@ cube cmake --build build/Debug
 - `offset A/B` 接近 2048 → 电流采样零偏正常
 - `max err ≈ 3e-5` → CORDIC 在跑（**如果打印 0.0000000，说明退回了查表**）
 - `start scheduler` 之后看到任务表 → 调度器起来了
-
----
 
 ## 三、硬件与引脚
 
@@ -437,70 +435,43 @@ else if (out < -p->out_max){ out = -p->out_max; p->integral = out - p_term; }
 
 ## 十一、编译与部署
 
-### 11.1 CubeMX 在这里干什么
+### 11.1 仓库自带全部依赖
 
-**不是配引脚 —— 引脚已经在 `main.c` 的 `MX_GPIO_Init()` 里手写完了。**
+| 目录 | 来源 | 说明 |
+|---|---|---|
+| `Drivers/STM32G4xx_HAL_Driver/` | ST `stm32g4xx_hal_driver` | HAL 源码与头文件 |
+| `Drivers/CMSIS/Device/ST/STM32G4xx/` | ST `cmsis_device_g4` | 器件头、`system_stm32g4xx.c` |
+| `Drivers/CMSIS/Include/` | ARM CMSIS Core | `core_cm4.h` 等 |
+| `Startup/startup_stm32g474xx.s` | ST CMSIS 模板 | 向量表与复位入口 |
+| `STM32G474XX_FLASH.ld` | 本项目编写 | 512 KB FLASH / 128 KB RAM / 32 KB CCM |
+| `Middlewares/FreeRTOS/` | FreeRTOS Kernel V10.3.1 | 内核 + **ARM_CM4F** port |
 
-CubeMX 的作用是**HAL 驱动库的下载器和骨架生成器**，产出三样手写不出来的东西：
+所以 `git clone` 之后直接 `cmake --preset Debug && cmake --build build/Debug` 即可编译，
+**不需要先打开 CubeMX 生成 HAL 外壳**。
 
-| 产物 | 为什么必须由它给 |
+### 11.2 工具链要求
+
+| 项 | 要求 |
 |---|---|
-| `Drivers/STM32G4xx_HAL_Driver/` | 几千个文件 |
-| `Drivers/CMSIS/` | `stm32g474xx.h`、`core_cm4.h` |
-| `startup_stm32g474xx.s` + `STM32G474XX_FLASH.ld` | 和芯片型号强绑定 |
+| 编译器 | `arm-none-eabi-gcc`（实测 14.3.1） |
+| 构建 | `cmake >= 3.22` + `ninja` |
+| 编译参数 | `-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard`（已在 `cmake/gcc-arm-none-eabi.cmake`） |
+| 链接参数 | `--specs=nano.specs -u _printf_float -Wl,--gc-sections` |
+| FreeRTOS port | **ARM_CM4F**（不是 CM3；CM3 不保存 FPU 寄存器，浮点任务会随机 HardFault） |
 
-⚠️ **CubeMX 按 `.ioc` 勾选"勾什么拷什么"** —— 不配引脚直接生成，`hal_adc.c`、`hal_fdcan.c` 一个都不会有，编译一堆 undefined reference。
-
-### 11.2 替换 Core（别整个目录盖过去）
-
-**保留 CubeMX 生成的：**
-
-| 文件 | 为什么留 |
-|---|---|
-| `Core/Inc/stm32g4xx_hal_conf.h` | 模块开关，删了 HAL 全废 |
-| `Core/Src/stm32g4xx_hal_msp.c` | HAL 内部回调落点 |
-| `Core/Src/system_stm32g4xx.c` | 系统初始化 |
-| `Core/Src/syscalls.c` / `sysmem.c` | newlib 桩，`printf` 依赖 |
-
-**用本仓库覆盖 / 新增：** `Core/Inc/` 下 12 个头 + `Core/Src/` 下 21 个源。
-
-**删掉 CubeMX 生成的**：`main.c`、`stm32g4xx_it.c`（会被覆盖）、以及按 .ioc 生成的 `gpio.c` / `tim.c` / `adc.c` / `i2c.c` / `usart.c` / `fdcan.c`（和手写的 main.c 重复定义）。
-
-### 11.3 核对 hal_conf.h（30 秒，省两小时）
-
-搜 `MODULE_ENABLED`，确认这 14 个没被注释掉：
+### 11.3 实测占用（Debug，-Og）
 
 ```
-HAL_MODULE_ENABLED            HAL_IWDG_MODULE_ENABLED
-HAL_ADC_MODULE_ENABLED        HAL_PWR_MODULE_ENABLED
-HAL_CORTEX_MODULE_ENABLED     HAL_RCC_MODULE_ENABLED
-HAL_DMA_MODULE_ENABLED        HAL_TIM_MODULE_ENABLED
-HAL_EXTI_MODULE_ENABLED       HAL_UART_MODULE_ENABLED
-HAL_FLASH_MODULE_ENABLED      HAL_FDCAN_MODULE_ENABLED
-HAL_GPIO_MODULE_ENABLED       HAL_I2C_MODULE_ENABLED
+text   56484 B   (FLASH 11.1%)
+data     488 B
+bss    32848 B   (RAM 25.4%，含 FreeRTOS heap 24 KB)
 ```
 
-> CORDIC 不需要任何模块宏 —— 直接操作 `CORDIC->CSR` 寄存器。
+### 11.4 如果仍想用 CubeMX 重新生成
 
-### 11.4 CMakeLists
-
-**根 `CMakeLists.txt`** 加业务源文件（19 个 .c）。
-
-**`cmake/stm32cubemx/CMakeLists.txt`** 加 FreeRTOS 8 个源 + **`ARM_CM4F`** port（不是 CM3）：
-
-```
-Middlewares/FreeRTOS/Source/{tasks,queue,list,timers,event_groups,stream_buffer}.c
-Middlewares/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
-Middlewares/FreeRTOS/Source/portable/MemMang/heap_4.c
-```
-
-**编译参数必须带 FPU**：
-
-```
--mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard
-```
-
----
+可以，但**只需它生成 HAL 外壳**，并且注意两点：
+1. `Core/Inc/stm32g4xx_hal_conf.h` 里 14 个 `MODULE_ENABLED` 不能被注释掉（ADC / CORTEX / DMA / EXTI / FLASH / GPIO / I2C / IWDG / PWR / RCC / TIM / UART / FDCAN + HAL_MODULE_ENABLED）
+2. 重新生成会把 `cmake/stm32cubemx/CMakeLists.txt` 写成它自己的文件列表，而本仓库的 `CMakeLists.txt` 是**手写的固定列表**，两者不要混用
 
 ## 十二、已知限制
 
@@ -515,7 +486,7 @@ Middlewares/FreeRTOS/Source/portable/MemMang/heap_4.c
 
 5. **FSMC 屏还没接**，`Task_HMI` 目前输出 ASCII 波形。接屏时只需把 `draw_wave()` 换成屏的写点函数，上层逻辑不动。
 
-6. ⚠️ **本仓库捆绑的 FreeRTOS port 是 `ARM_CM3`，必须替换为 `ARM_CM4F`**（G474 是 Cortex-M4F，CM3 port 不保存 FPU 寄存器，浮点任务会随机 HardFault）。另外编译参数必须带 `-mfpu=fpv4-sp-d16 -mfloat-abi=hard`。详见 [§11.4](#114-cmakelists)。
+6. ✅ **FreeRTOS port 已换成 `ARM_CM4F`**（V10.3.1 配套版本）。曾用过 CM3 port，但 G474 是 Cortex-M4F，CM3 不保存 FPU 寄存器 → 浮点任务会随机 HardFault。
 
 ### 与 F103 版的差异（早期版本，未开源）
 
@@ -565,7 +536,7 @@ wushua_g474/
 
 | 优先级 | 事项 |
 |---|---|
-| **P0** | CubeMX 生成 HAL 外壳 → 编译通过 |
+| ~~P0~~ | ~~CubeMX 生成 HAL 外壳 → 编译通过~~ ✅ 2026-11-01 已完成（无需 CubeMX，HAL 已入库） |
 | **P0** | 上板验证 `[CORD] max err`、电流零偏、任务表 |
 | **P0** | 接电机跑通开环 → 电流环闭环 → 正反转 |
 | P1 | FSMC 屏波形界面（替换 `draw_wave()`） |

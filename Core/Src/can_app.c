@@ -169,7 +169,7 @@ void CAN_App_SendStatus(void)
     h.DataLength          = FDCAN_DLC_BYTES_8;
     h.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
     h.BitRateSwitch       = FDCAN_BRS_OFF;      /* 经典 CAN，不开变速 */
-    h.FxFormat            = FDCAN_CLASSIC_CAN;
+    h.FDFormat            = FDCAN_CLASSIC_CAN;
     h.TxEventFifoControl  = FDCAN_NO_TX_EVENTS;
     h.MessageMarker       = 0;
 

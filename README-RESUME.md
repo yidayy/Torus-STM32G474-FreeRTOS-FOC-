@@ -7,7 +7,7 @@
 | 阶段 | 状态 |
 |---|---|
 | **控制算法（PC 闭环仿真）** | ✅ 速度阶跃超调 **2.9%**，建立 **90 ms**，反转超调 **1.2%** |
-| **固件编译** | ⚠️ 待 CubeMX 生成 HAL 外壳（本地无 G4 固件包） |
+| **固件编译** | ✅ **通过**（arm-none-eabi-gcc 14.3.1，text 56.5 KB / RAM 33.3 KB） |
 | **上板实测** | ⏸ 硬件未到，**故不写任何实测数字** |
 
 ---
@@ -103,15 +103,14 @@ gcc -O2 -DHOST_SIM -DFOC_USE_CORDIC=0 -I../../Core/Inc -o sim \
     sim_main.c ../../Core/Src/foc_core.c ../../Core/Src/trig.c -lm
 ./sim 3.0 0.075 0.95        # 仿真 3 秒，指定 Kp/Ki
 
-# 固件层
-# 1) CubeMX 打开 wushua_g474.ioc → CMake 工具链 → GENERATE CODE
-# 2) 覆盖 Core（保留 hal_conf.h / hal_msp.c / system_stm32g4xx.c / syscalls.c）
-# 3) cube cmake --preset Debug --fresh && cube cmake --build build/Debug
+# 固件层（HAL/CMSIS/启动文件/链接脚本均已入库，无需 CubeMX）
+cmake --preset Debug
+cmake --build build/Debug        # → build/Debug/torus.elf
 ```
 
 ## 10. 已知限制（诚实清单）
 
-- **编译未完成**：本地无 G4 固件包，需 CubeMX 生成 HAL 外壳；本文所有数字均来自 PC 仿真，**无一条实测数据**
+- **仅编译通过、尚未上板**：板卡未到，本文所有性能数字来自 PC 闭环仿真，**无一条实测数据**
 - **AS5600 走 I2C 单次约 200 µs**，只能进 1 kHz 速度环；云台电机 100 rpm 时电角度滞后 8.4°（cos≈0.99 基本无感），>500 rpm 明显掉力矩。解法：模拟输出接 ADC，或换 MT6701（SPI）
 - **FSMC 屏未接**：`Task_HMI` 暂输出 ASCII 波形，接屏只需替换 `draw_wave()`，上层不动
 - **Modbus RTU 从站 / CiA402 状态机**：规划中，未实现

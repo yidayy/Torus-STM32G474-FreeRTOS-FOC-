@@ -296,8 +296,8 @@ static void MX_ADC1_Init(void)
     inj.InjectedSingleDiff      = ADC_SINGLE_ENDED;
     inj.InjectedOffsetNumber    = ADC_OFFSET_NONE;
     inj.InjectedOffset          = 0;
-    inj.InjectedTrigger         = ADC_EXTERNALTRIGINJEC_T1_TRGO;
-    inj.InjectedTriggerEdge     = ADC_EXTERNALTRIGINJECCONV_EDGE_RISING;
+    inj.ExternalTrigInjecConv   = ADC_EXTERNALTRIGINJEC_T20_TRGO;   /* TIM20 TRGO */
+    inj.ExternalTrigInjecConvEdge = ADC_EXTERNALTRIGINJECCONV_EDGE_RISING;
     inj.AutoInjectedConv        = DISABLE;
     inj.QueueInjectedContext    = DISABLE;
     inj.InjectedDiscontinuousConvMode = DISABLE;
@@ -310,8 +310,7 @@ static void MX_ADC1_Init(void)
     inj.InjectedRank    = ADC_INJECTED_RANK_2;
     if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &inj) != HAL_OK) Error_Handler();
 
-    /* 注意：注入触发源写 T1_TRGO 是 HAL 的通用枚举名，
-       我们的实际触发来自 TIM20 的 TRGO，接法见 README「ADC 触发改造」一节 */
+    /* 注入组由 TIM20 TRGO 触发：PWM 中心对齐点采样，避开开关噪声 */
 }
 
 /* ------------------------------------------------------------------ */

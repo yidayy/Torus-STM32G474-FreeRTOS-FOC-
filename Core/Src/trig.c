@@ -44,8 +44,7 @@ void Trig_Init(void)
     CORDIC->CSR = (0uL  << CORDIC_CSR_FUNC_Pos)        /* FUNC = 0 => cosine，同时出 sin */
                 | (15uL << CORDIC_CSR_PRECISION_Pos)   /* 16 次迭代 */
                 | (0uL  << CORDIC_CSR_NARGS_Pos)       /* 1 个入参 */
-                | (1uL  << CORDIC_CSR_NRES_Pos)        /* 2 个结果 */
-                | (0uL  << CORDIC_CSR_RW_Pos);         /* 读写模式 */
+                | (1uL  << CORDIC_CSR_NRES_Pos);       /* 2 个结果 */
 
     s_last_cycles = 0;
 }

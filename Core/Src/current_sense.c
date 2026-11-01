@@ -34,7 +34,7 @@ static void read_raw(uint16_t *ra, uint16_t *rb)
     *rb = s_off_b;
 #else
     /* 直接写寄存器，比 HAL_ADCEx_InjectedStart 少约 3 us */
-    ADC1->CR2 |= ADC_CR2_JSWSTART;
+    ADC1->CR |= ADC_CR_JADSTART;
     while ((ADC1->ISR & ADC_ISR_JEOC) == 0u) { }
     ADC1->ISR &= ~ADC_ISR_JEOC;
 
