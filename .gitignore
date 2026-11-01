@@ -1,0 +1,30 @@
+# 构建产物
+build/
+Debug/
+Release/
+_ide/
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+*.su
+
+# CubeMX / IDE 临时文件
+mx.scratch
+*.ioc.bak
+.vscode/
+.settings/
+
+# 仿真与工具产物
+tools/sim/sim
+tools/sim/*.exe
+__pycache__/
+*.pyc
+
+# 系统
+.DS_Store
+Thumbs.db
+*.log
