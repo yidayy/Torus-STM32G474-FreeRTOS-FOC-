@@ -515,6 +515,8 @@ Middlewares/FreeRTOS/Source/portable/MemMang/heap_4.c
 
 5. **FSMC 屏还没接**，`Task_HMI` 目前输出 ASCII 波形。接屏时只需把 `draw_wave()` 换成屏的写点函数，上层逻辑不动。
 
+6. ⚠️ **本仓库捆绑的 FreeRTOS port 是 `ARM_CM3`，必须替换为 `ARM_CM4F`**（G474 是 Cortex-M4F，CM3 port 不保存 FPU 寄存器，浮点任务会随机 HardFault）。另外编译参数必须带 `-mfpu=fpv4-sp-d16 -mfloat-abi=hard`。详见 [§11.4](#114-cmakelists)。
+
 ### 与 F103 版（`E:\Demo\wushua`）的差异
 
 | 项 | F103 版 | G474 版 |
